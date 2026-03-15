@@ -1,0 +1,8 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+data/faiss_index/
+*.zip
+1754386259_*.pdf
