@@ -91,58 +91,49 @@ def update_patient_summary(patient_id: str, new_summary: str) -> Optional[dict]:
 
 # --- doctors ---
 
+def _build_slots(times: list[str], weeks: int = 3) -> list[dict]:
+    """Generate available slots for the next *weeks* weeks, skipping Sundays."""
+    today = datetime.date.today()
+    slots = []
+    for day_offset in range(weeks * 7):
+        d = today + datetime.timedelta(days=day_offset)
+        if d.weekday() == 6:  # skip Sunday
+            continue
+        for t in times:
+            slots.append({"date": d.isoformat(), "time": t, "booked": False})
+    return slots
+
+
 _doctors: list[dict] = [
     {
         "doctor_id": "D001",
         "name": "Dr. Priya Sharma",
         "specialty": "Nephrology",
-        "available_slots": [
-            {"date": "2026-03-16", "time": "09:00", "booked": False},
-            {"date": "2026-03-16", "time": "11:00", "booked": False},
-            {"date": "2026-03-17", "time": "10:00", "booked": False},
-            {"date": "2026-03-18", "time": "14:00", "booked": False},
-        ],
+        "available_slots": _build_slots(["09:00", "11:00", "14:00"]),
     },
     {
         "doctor_id": "D002",
         "name": "Dr. Anand Rao",
         "specialty": "General Medicine",
-        "available_slots": [
-            {"date": "2026-03-16", "time": "08:00", "booked": False},
-            {"date": "2026-03-16", "time": "10:30", "booked": False},
-            {"date": "2026-03-17", "time": "09:00", "booked": False},
-            {"date": "2026-03-17", "time": "15:00", "booked": False},
-        ],
+        "available_slots": _build_slots(["08:00", "10:30", "13:00", "15:00"]),
     },
     {
         "doctor_id": "D003",
         "name": "Dr. Meena Iyer",
         "specialty": "Endocrinology",
-        "available_slots": [
-            {"date": "2026-03-16", "time": "10:00", "booked": False},
-            {"date": "2026-03-17", "time": "11:00", "booked": False},
-            {"date": "2026-03-18", "time": "09:30", "booked": False},
-        ],
+        "available_slots": _build_slots(["09:30", "11:00", "15:30"]),
     },
     {
         "doctor_id": "D004",
         "name": "Dr. Rajesh Gupta",
         "specialty": "Cardiology",
-        "available_slots": [
-            {"date": "2026-03-16", "time": "14:00", "booked": False},
-            {"date": "2026-03-17", "time": "08:30", "booked": False},
-            {"date": "2026-03-18", "time": "10:00", "booked": False},
-        ],
+        "available_slots": _build_slots(["08:30", "10:00", "14:00", "16:00"]),
     },
     {
         "doctor_id": "D005",
         "name": "Dr. Sunita Verma",
         "specialty": "Pulmonology",
-        "available_slots": [
-            {"date": "2026-03-16", "time": "09:30", "booked": False},
-            {"date": "2026-03-17", "time": "13:00", "booked": False},
-            {"date": "2026-03-18", "time": "11:00", "booked": False},
-        ],
+        "available_slots": _build_slots(["09:00", "11:30", "14:30"]),
     },
 ]
 

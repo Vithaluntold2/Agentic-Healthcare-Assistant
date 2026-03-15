@@ -10,7 +10,7 @@ from datetime import datetime
 from src.agent import HealthcareAgent
 from src.database import (
     get_all_patients, get_all_doctors, get_appointments,
-    get_available_slots, find_patient,
+    get_available_slots, find_patient, cancel_appointment,
 )
 from src.evaluation import AgentEvaluator
 from src.rag_pipeline import build_vector_store
@@ -703,25 +703,91 @@ def render_appointments():
                     "Use the Chat Assistant to book one.")
         return
 
-    confirmed = sum(1 for a in appointments if a["status"] == "confirmed")
-    cancelled = sum(1 for a in appointments if a["status"] == "cancelled")
+    confirmed = [a for a in appointments if a["status"] == "confirmed"]
+    cancelled = [a for a in appointments if a["status"] == "cancelled"]
 
+    # summary cards
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown(metric_card("calendar", "Total", len(appointments)), unsafe_allow_html=True)
     with c2:
-        st.markdown(metric_card("calendar-check", "Confirmed", confirmed, "#059669"), unsafe_allow_html=True)
+        st.markdown(metric_card("calendar-check", "Confirmed", len(confirmed), "#059669"), unsafe_allow_html=True)
     with c3:
-        st.markdown(metric_card("x-circle", "Cancelled", cancelled, "#DC2626"), unsafe_allow_html=True)
+        st.markdown(metric_card("x-circle", "Cancelled", len(cancelled), "#DC2626"), unsafe_allow_html=True)
 
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
-    df = pd.DataFrame(appointments)
-    display_cols = ["appointment_id", "doctor_name", "specialty", "date", "time", "status", "patient_id"]
-    available = [c for c in display_cols if c in df.columns]
-    st.dataframe(df[available], use_container_width=True, hide_index=True)
+    # filter controls
+    status_filter = st.selectbox("Filter by status", ["All", "Confirmed", "Cancelled"], index=0)
+    filtered = appointments
+    if status_filter == "Confirmed":
+        filtered = confirmed
+    elif status_filter == "Cancelled":
+        filtered = cancelled
 
-    if len(appointments) > 0:
+    if not filtered:
+        empty_state("search", "No matching appointments", f"No {status_filter.lower()} appointments found.")
+        return
+
+    # appointment cards
+    for appt in filtered:
+        is_confirmed = appt["status"] == "confirmed"
+        border_color = "#059669" if is_confirmed else "#DC2626"
+        status_bg = "#ECFDF5" if is_confirmed else "#FEF2F2"
+        status_color = "#059669" if is_confirmed else "#DC2626"
+        status_icon = "check-circle" if is_confirmed else "x-circle"
+        status_label = appt["status"].capitalize()
+
+        card_html = f"""
+        <div style="border:1px solid #E5E7EB;border-left:3px solid {border_color};
+                    border-radius:8px;padding:14px 16px;margin-bottom:10px;background:#fff;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    {lucide("stethoscope", 16, "#2563EB")}
+                    <span style="font-weight:600;font-size:14px;color:#111827;">{appt.get('doctor_name', 'N/A')}</span>
+                    <span style="font-size:12px;color:#6B7280;">·</span>
+                    <span style="font-size:12px;color:#6B7280;">{appt.get('specialty', '')}</span>
+                </div>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+                             border-radius:9999px;font-size:11px;font-weight:600;
+                             background:{status_bg};color:{status_color};">
+                    {lucide(status_icon, 12, status_color)} {status_label}
+                </span>
+            </div>
+            <div style="display:flex;gap:20px;font-size:13px;color:#374151;">
+                <span style="display:inline-flex;align-items:center;gap:4px;">
+                    {lucide("calendar", 13, "#6B7280")} {appt.get('date', 'N/A')}
+                </span>
+                <span style="display:inline-flex;align-items:center;gap:4px;">
+                    {lucide("clock", 13, "#6B7280")} {appt.get('time', 'N/A')}
+                </span>
+                <span style="display:inline-flex;align-items:center;gap:4px;">
+                    {lucide("user", 13, "#6B7280")} {appt.get('patient_id', 'N/A')}
+                </span>
+            </div>
+            <div style="margin-top:4px;font-size:11px;color:#9CA3AF;">
+                ID: {appt.get('appointment_id', '')}
+            </div>
+        </div>
+        """
+        st.markdown(card_html, unsafe_allow_html=True)
+
+        if is_confirmed:
+            col_spacer, col_btn = st.columns([5, 1])
+            with col_btn:
+                if st.button("Cancel", key=f"cancel_{appt['appointment_id']}", type="secondary"):
+                    result = cancel_appointment(appt["appointment_id"])
+                    if result.get("success"):
+                        st.success(f"Appointment {appt['appointment_id']} cancelled.")
+                        st.rerun()
+                    else:
+                        st.error(result.get("error", "Failed to cancel."))
+
+    # status chart
+    if len(appointments) > 1:
+        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+        section_label("bar-chart", "Status Breakdown")
+        df = pd.DataFrame(appointments)
         status_counts = df["status"].value_counts()
         fig = px.bar(x=status_counts.index, y=status_counts.values,
                      labels={"x": "Status", "y": "Count"},
