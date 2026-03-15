@@ -136,8 +136,21 @@ class HealthcareAgent:
         """Send a message and get the agent's reply."""
         self.memory.add_interaction("user", user_input)
 
+        # Build full conversation history so the LLM sees prior turns
+        history_messages = []
+        for turn in self.memory.get_recent_history(n=20):
+            if turn["role"] == "user":
+                history_messages.append(HumanMessage(content=turn["content"]))
+            elif turn["role"] == "assistant":
+                history_messages.append(AIMessage(content=turn["content"]))
+
+        # If history includes the current message as last, use as-is;
+        # otherwise append it (shouldn't happen, but safeguard)
+        if not history_messages or not isinstance(history_messages[-1], HumanMessage):
+            history_messages.append(HumanMessage(content=user_input))
+
         initial_state: AgentState = {
-            "messages": [HumanMessage(content=user_input)],
+            "messages": history_messages,
             "patient_context": self.memory.get_context_string(),
             "plan": "",
             "tool_log": [],

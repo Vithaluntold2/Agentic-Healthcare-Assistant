@@ -1,0 +1,38 @@
+ADDITIONAL REMARKS
+==================
+
+This project implements a fully functional Agentic Healthcare Assistant using a LangGraph-based multi-agent architecture with Azure OpenAI GPT-5.2-chat.
+
+KEY HIGHLIGHTS:
+
+1. AGENTIC ARCHITECTURE — The system uses a LangGraph StateGraph with a planner → tool → planner loop. The AI autonomously decides which of 10 tools to call, chains multi-step operations (e.g., find patient → find doctor → check slots → book appointment), and loops until the task is complete. This is not a simple chatbot — it reasons, plans, and acts.
+
+2. FULL CONVERSATION CONTEXT — The agent maintains a 20-turn rolling conversation history. Each invocation passes the complete chat history as HumanMessage/AIMessage pairs to the LLM, enabling coherent multi-turn dialogues where the agent remembers patient names, prior queries, and ongoing workflows.
+
+3. RAG PIPELINE — Patient medical reports (PDFs) are semantically indexed using FAISS with all-MiniLM-L6-v2 embeddings. The agent can search these documents via natural language queries, returning the most relevant passages with relevance scores. The index is persisted to disk for fast subsequent loads.
+
+4. REAL-TIME MEDICAL SEARCH — Integrates with the MedlinePlus / NLM API to search for trusted, evidence-based medical information about diseases, treatments, and symptoms — ensuring the agent never fabricates clinical facts.
+
+5. DYNAMIC SCHEDULING — Doctor availability slots are generated dynamically for a rolling 3-week window starting from today, skipping Sundays. Slots support booking and cancellation with immediate availability updates.
+
+6. LLM-AS-JUDGE EVALUATION — Built-in evaluation framework that scores every agent response on 5 criteria (relevance, accuracy, helpfulness, completeness, overall) using the same LLM as judge. Supports both automatic (per-response) and manual evaluation modes with aggregate dashboards.
+
+7. DEPLOYMENT READY — Runs locally with a .env file and on Streamlit Community Cloud using st.secrets, with a _get_secret() fallback mechanism that works seamlessly in both environments.
+
+TECHNOLOGY STACK:
+- Python 3.11
+- LangGraph + LangChain (agent orchestration)
+- Azure OpenAI GPT-5.2-chat (LLM)
+- FAISS + HuggingFace sentence-transformers (RAG)
+- Streamlit (frontend)
+- Plotly (visualizations)
+- MedlinePlus API (medical search)
+
+LIVE DEPLOYMENT: Hosted on Streamlit Community Cloud via GitHub (Vithaluntold2/Agentic-Healthcare-Assistant).
+
+DEMO CAPABILITIES:
+- "Search for patient Susheel Sharma" → finds and displays patient details
+- "Book an appointment with Dr. Priya Sharma for tomorrow at 9 AM" → multi-step booking
+- "What is diabetes?" → MedlinePlus search with trusted results
+- "Show me Ramesh's medical history" → RAG retrieval from PDF reports
+- Full follow-up conversations where the agent remembers prior context

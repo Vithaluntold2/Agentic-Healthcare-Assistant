@@ -504,8 +504,8 @@ EXAMPLE_QUERIES = [
 
 
 def render_chat():
-    page_header("message-circle", "Customer Support Agent",
-                "Send a message and watch the multi-agent system classify and respond.")
+    page_header("message-circle", "Chat Assistant",
+                "Ask anything about patients, appointments, or medical info.")
 
     st.markdown("---")
 
